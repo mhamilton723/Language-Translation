@@ -100,7 +100,7 @@ class SkipGramEmbedding(object):
                  optimizer='rmsprop'
                  ):
         """
-        :param max_words: use onlu the n most common words in data
+        :param max_words: use only the n most common words in data
         :param skip_top_words: ignore top m ost common words
         :param n_epochs: number of training epochs
         :param n_dims: embedding space dimension
