@@ -1,0 +1,28 @@
+C:\Anaconda\python.exe "C:/Users/Mark/Documents/sr year/Machine Learning/Language-Translation/embedding_comparison.py"
+Translation with pt:TruncatedSVD(algorithm='randomized', n_components=2, n_iter=5,
+       random_state=None, tol=0.0) scored:0.00127990322474
+Translation with pt:PCA(copy=True, n_components=2, whiten=False) scored:0.000376881269589
+Translation with pt:SparsePCA(U_init=None, V_init=None, alpha=1, max_iter=1000, method='lars',
+     n_components=2, n_jobs=1, random_state=None, ridge_alpha=0.01,
+     tol=1e-08, verbose=False) scored:0.00151640913323
+Translation with pt:TruncatedSVD(algorithm='randomized', n_components=5, n_iter=5,
+       random_state=None, tol=0.0) scored:0.000797081444213
+Translation with pt:PCA(copy=True, n_components=5, whiten=False) scored:0.000579921813024
+Translation with pt:SparsePCA(U_init=None, V_init=None, alpha=1, max_iter=1000, method='lars',
+     n_components=5, n_jobs=1, random_state=None, ridge_alpha=0.01,
+     tol=1e-08, verbose=False) scored:0.0012768563742
+Translation with pt:TruncatedSVD(algorithm='randomized', n_components=10, n_iter=5,
+       random_state=None, tol=0.0) scored:0.00085795253704
+Translation with pt:PCA(copy=True, n_components=10, whiten=False) scored:0.000983475765994
+Translation with pt:SparsePCA(U_init=None, V_init=None, alpha=1, max_iter=1000, method='lars',
+     n_components=10, n_jobs=1, random_state=None, ridge_alpha=0.01,
+     tol=1e-08, verbose=False) scored:0.000718490369008
+Translation with pt:TruncatedSVD(algorithm='randomized', n_components=20, n_iter=5,
+       random_state=None, tol=0.0) scored:0.000735120712783
+Translation with pt:PCA(copy=True, n_components=20, whiten=False) scored:0.000465505340958
+Translation with pt:SparsePCA(U_init=None, V_init=None, alpha=1, max_iter=1000, method='lars',
+     n_components=20, n_jobs=1, random_state=None, ridge_alpha=0.01,
+     tol=1e-08, verbose=False) scored:0.000718082341263
+Translation with pt:TruncatedSVD(algorithm='randomized', n_components=30, n_iter=5,
+       random_state=None, tol=0.0) scored:0.000494653898466
+Translation with pt:PCA(copy=True, n_components=30, whiten=False) scored:0.00086754730223
