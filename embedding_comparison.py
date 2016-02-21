@@ -300,9 +300,9 @@ def plot_comp(model=TruncatedSVD(), subsample=1000, alpha=.005, alpha_cat=.5,
         plt.title("Projection onto {} of {} words".format(str(model_copy).split('(')[0], names[i]))
     plt.legend()
     plt.savefig(
-        'plots/'+
-        str(model_copy).split('(')[0]+
-        '_'+str(subsample%1000)+
+        'plots/' +
+        str(model_copy).split('(')[0] +
+        '_'+str(subsample//1000) +
         'k_embedding.png', dpi=100)
 
 
