@@ -1,12 +1,10 @@
 # coding=utf-8
 __author__ = 'Mark'
 
-import pickle
-
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import numpy as np
 import math
-
 
 from embedding import *
 
@@ -15,7 +13,6 @@ from sklearn.decomposition import TruncatedSVD, PCA, KernelPCA, SparsePCA, Dicti
 from sklearn.base import clone
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-
 
 
 en_2_es = pickle.load(open('data/en_2_es.pkl', 'r'))

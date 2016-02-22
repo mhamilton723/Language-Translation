@@ -7,6 +7,8 @@ from itertools import izip
 import re
 import pickle
 
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
