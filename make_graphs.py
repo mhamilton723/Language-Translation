@@ -54,4 +54,4 @@ pickle.dump(es_nn_graph, open('data/es_nn_graph.pkl', 'w+'))
 for n, nbrs in en_nn_graph.adjacency_iter():
     for nbr, eattr in nbrs.items():
         data = eattr['weight']
-        print('(%d, %d, %.3f)' % (n, nbr, data))
+        print('(%s, %s, %.3f)' % (n, nbr, data))
