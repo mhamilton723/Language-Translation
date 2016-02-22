@@ -42,7 +42,6 @@ from keras.layers.embeddings import WordContextProduct, Embedding
 from six.moves import range
 from six.moves import zip
 
-lines = 5000000
 max_words = 50000  # vocabulary size: top 50,000 most common words in data
 skip_top_words = 0  # ignore top 100 most common words
 n_epochs = 1
@@ -54,15 +53,14 @@ load_tokenizer = False
 train_model = True
 
 base_path = "~/machine_learning/Language-Translation/"
-language = 'en'
 save_dir = os.path.expanduser(base_path + "models/")
-data_path = os.path.expanduser(base_path + "data/" + language + "/full.txt")
-
+data_path = os.path.expanduser(base_path + "data/en/") + "med.txt"
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
-model_load_fname = language + "_large_skipgram_model.pkl"
-model_save_fname = language + "_large_skipgram_model.pkl"
-tokenizer_fname = language + "_large_tokenizer.pkl"
+model_load_fname = "en_med_skipgram_model.pkl"
+model_save_fname = "en_med_skipgram_model.pkl"
+tokenizer_fname = "en_med_tokenizer.pkl"
+
 
 # text preprocessing utils
 html_tags = re.compile(r'<.*?>')
@@ -79,25 +77,15 @@ def clean_comment(comment):
     return c
 
 
-def check_line(text):
-    if text.startswith('[['):
-        return False
-    else:
-        return True
-
-
-def text_generator(path=data_path, max_lines=lines):
+def text_generator(path=data_path):
     f = open(path)
     for i, l in enumerate(f):
         # comment_data = json.loads(l)
         # comment_text = comment_data["comment_text"]
-        if i <= max_lines:
-            if i % 10000 == 0:
-                print(i)
-            if check_line(l): yield l
-        else:
-            break
-
+        comment_text = l
+        if i % 10000 == 0:
+            print('Generated ' + str(i) + ' lines')
+        yield comment_text
     f.close()
 
 
@@ -136,7 +124,6 @@ class SkipGramEmbedding(object):
             WordContextProduct(self.max_words, proj_dim=self.n_dims, init="uniform"))
         self.embedding_model.compile(loss=loss, optimizer=optimizer)
         self._are_embeddings_fit = False
-        self.embeddings = None
 
     def fit_tokenizer(self, text):
         print("Fitting tokenizer...")
@@ -167,12 +154,11 @@ class SkipGramEmbedding(object):
     def load_embeddings(self, path):
         print('Loading embeddings...')
         self.embedding_model = cPickle.load(open(path, 'rb'))
-        self._init_embeddings()
         self._are_embeddings_fit = True
         return self
 
     def _fit_embeddings(self, text):
-        sampling_table = sequence.make_sampling_table(self.max_words)
+        sampling_table = sequence.make_sampling_table(max_words)
 
         for e in range(self.n_epochs):
             print('-' * 40)
@@ -185,8 +171,8 @@ class SkipGramEmbedding(object):
 
             for i, seq in enumerate(self.tokenizer.texts_to_sequences_generator(text)):
 
-                # MAKE SURE TOKENIZER AND FITTING ARE WORKING
-                # if i < 5:
+                #MAKE SURE TOKENIZER AND FITTING ARE WORKING
+                #if i < 5:
                 #    print(map(lambda x: reverse_word_index[x], seq))
 
                 # get skipgram couples for one text in the dataset
@@ -205,40 +191,50 @@ class SkipGramEmbedding(object):
                     samples_seen += len(labels)
             print('Samples seen:', samples_seen)
         print("Training completed!")
-        self._init_embeddings()
         return self
 
-    def _init_embeddings(self):
-        self.embeddings = self.embedding_model.layers[0].get_weights()[0]
-        self.embeddings[:self.skip_top_words] = np.zeros((self.skip_top_words, self.n_dims))
-        self.embeddings = np_utils.normalize(self.embeddings)
-
-    def save_embeddings(self, path):
+    def save_embeddings(self,path):
         print("Saving model...")
         if not os.path.exists(path):
             os.makedirs(path)
         cPickle.dump(self.embedding_model, open(path, "wb"))
 
-    def embed_word(self, word):
-        i = self._word_index.get(word)
-        if (not i) or (i < skip_top_words) or (i >= max_words):
-            return None
-        return self.embeddings[i]
-
-    def closest_to_point(self, point, n_closest=3):
-        proximities = np.dot(self.embeddings, point)
-        tups = list(zip(list(range(len(proximities))), proximities))
-        tups.sort(key=lambda x: x[1], reverse=True)
-        return [(self._reverse_word_index.get(t[0]), t[1]) for t in tups[:n_closest]]
-
-    def closest_to_word(self, w, nb_closest=3):
-        i = word_index.get(w)
-        if (not i) or (i < skip_top_words) or (i >= max_words):
-            return []
-        return closest_to_point(norm_weights[i].T, nb_closest)
-
 
 print("It's test time!")
+
+# recover the embedding weights trained with skipgram:
+weights = model.layers[0].get_weights()[0]
+
+# we no longer need this
+del model
+
+weights[:skip_top_words] = np.zeros((skip_top_words, n_dims))
+norm_weights = np_utils.normalize(weights)
+
+word_index = tokenizer.word_index
+reverse_word_index = dict([(v, k) for k, v in list(word_index.items())])
+
+
+def embed_word(w):
+    i = word_index.get(w)
+    if (not i) or (i < skip_top_words) or (i >= max_words):
+        return None
+    return norm_weights[i]
+
+
+def closest_to_point(point, nb_closest=3):
+    proximities = np.dot(norm_weights, point)
+    tups = list(zip(list(range(len(proximities))), proximities))
+    tups.sort(key=lambda x: x[1], reverse=True)
+    return [(reverse_word_index.get(t[0]), t[1]) for t in tups[:nb_closest]]
+
+
+def closest_to_word(w, nb_closest=3):
+    i = word_index.get(w)
+    if (not i) or (i < skip_top_words) or (i >= max_words):
+        return []
+    return closest_to_point(norm_weights[i].T, nb_closest)
+
 
 ''' the resuls in comments below were for:
     5.8M HN comments

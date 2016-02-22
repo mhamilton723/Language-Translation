@@ -2,7 +2,7 @@
 #PBS -q gputest
 #PBS -N skipgram
 #PBS -l nodes=1:ppn=16,mem=10gb
-#PBS -l walltime=5:00:00
+#PBS -l walltime=55:00:00
 
 cd $PBS_O_WORKDIR
 module load GPU/Cuda/6.0
