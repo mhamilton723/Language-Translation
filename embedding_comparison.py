@@ -63,7 +63,7 @@ def translation_quality(candidate, true_translation=en_2_es, mode="wholistic"):
 
         if cand_o in true_translation.keys():
             true_words = true_translation[cand_o][0]
-            for cand_t_word, weight in cand_t.iteritems():
+            for cand_t_word, weight in cand_t:
                 if cand_t_word in true_words:
                     if mode == "wholistic":
                         matches += weight
@@ -137,9 +137,8 @@ def nn_embedding_translate(words=en_2_es.keys(), embedding1=en_embedding, embedd
 
     output = {}
     for i, word in enumerate(in_vocab_words):
-        if i % 100 == 0:
-            if log:
-                print "{} of {} words".format(i, len(words))
+        if log and i % 100 == 0:
+            print "{} of {} words".format(i, len(words))
 
         emb = embedding1.word_to_embedding(word)
         if emb is not None:
@@ -150,16 +149,21 @@ def nn_embedding_translate(words=en_2_es.keys(), embedding1=en_embedding, embedd
 
 
 def regression_translation(dictionary=en_2_es, embedding1=en_embedding, embedding2=es_embedding,
-                           constraint=es_2_en.keys(), k=5, test_size=.2,
-                           model=LinearRegression(), log=True):
+                           constraint=es_2_en.keys(), k=1, test_size=.2,
+                           model=LinearRegression(), log=False):
     X, Y = flatten(dictionary)
     embs1 = embedding1.word_to_embedding(X)
     embs2 = embedding2.word_to_embedding(Y)
-    embs1, embs2 = remove_nones([embs1, embs2])
+    embs1, embs2, X, Y = remove_nones([embs1, embs2,X,Y])
+
+    if constraint is not None:
+        embedding2 = sub_embedding(embedding2, constraint)
 
     X_arr = np.array(embs1)
     Y_arr = np.array(embs2)
-    X_train, X_test, Y_train, Y_test = train_test_split(X_arr, Y_arr, test_size=test_size)
+    indices = np.array(range(X_arr.shape[0]))
+    X_train, X_test, Y_train, Y_test, indices_train, indices_test =\
+        train_test_split(X_arr, Y_arr, indices, test_size=test_size)
 
     model.fit(X_train, Y_train)
     Y_pred_test = model.predict(X_test)
@@ -171,7 +175,7 @@ def regression_translation(dictionary=en_2_es, embedding1=en_embedding, embeddin
         if log and i%100 == 0:
             print "testing set: {} of {}".format(i,X_test.shape[0])
         emb1 = X_test[i]
-        word1 = embedding1.words_closest_to_point(emb1, 1, return_distances=False)[0]
+        word1 = X[indices_test[i]]
         pred_emb2 = Y_pred_test[i]
         trans = embedding2.words_closest_to_point(pred_emb2, k)
         trans = softmax(trans)
@@ -182,7 +186,7 @@ def regression_translation(dictionary=en_2_es, embedding1=en_embedding, embeddin
             print "training set: {} of {}".format(i,X_train.shape[0])
 
         emb1 = X_train[i]
-        word1 = embedding1.words_closest_to_point(emb1, 1, return_distances=False)[0]
+        word1 = X[indices_train[i]]
         pred_emb2 = Y_pred_train[i]
         trans = embedding2.words_closest_to_point(pred_emb2, k)
         trans = softmax(trans)
@@ -246,7 +250,7 @@ def plot_comp(model=TruncatedSVD(), subsample=1000, alpha=.005, alpha_cat=.5,
         'k_embedding.png', dpi=100)
 
 
-run_knn = True
+run_knn = False
 if run_knn:
     print en_embedding.knn("Dog")
     print en_embedding.knn("blue")
@@ -266,7 +270,15 @@ if try_comp:
 try_regression_translate = True
 if try_regression_translate:
     model = LinearRegression()
-    train_trans, test_trans = regression_translation(model=model)
+
+    regen_dicts = True
+    filename = 'data/translations.pkl'
+    if regen_dicts:
+        train_trans, test_trans = regression_translation(model=model)
+        pickle.dump((train_trans, test_trans), open(filename, 'w+'))
+    else:
+        train_trans, test_trans = pickle.load(open(filename, 'r'))
+
     print "training translation with model:{} scored:{}".format(model, translation_quality(train_trans))
     print "testing translation with model:{} scored:{}".format(model, translation_quality(test_trans))
 
