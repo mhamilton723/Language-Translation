@@ -35,8 +35,14 @@ es_embedding = Embedding('data/polyglot-es.pkl')
 
 def softmax(scores):
     if isinstance(scores, list):
-        denom = sum(math.exp(score) for score in scores)
-        return [math.exp(score) / denom for score in scores]
+        if isinstance(scores[0], tuple):
+            words = [word for word, score in scores]
+            scores = [score for word, score in scores]
+            denom = sum(math.exp(score) for score in scores)
+            return zip(words, [math.exp(score) / denom for score in scores])
+        else:
+            denom = sum(math.exp(score) for score in scores)
+            return [math.exp(score) / denom for score in scores]
     elif isinstance(scores, np.ndarray):
         denom = sum(np.exp(scores))
         return np.exp(scores) / denom
@@ -145,7 +151,7 @@ def nn_embedding_translate(words=en_2_es.keys(), embedding1=en_embedding, embedd
 
 def regression_translation(dictionary=en_2_es, embedding1=en_embedding, embedding2=es_embedding,
                            constraint=es_2_en.keys(), k=5, test_size=.2,
-                           model=LinearRegression(), log=False):
+                           model=LinearRegression(), log=True):
     X, Y = flatten(dictionary)
     embs1 = embedding1.word_to_embedding(X)
     embs2 = embedding2.word_to_embedding(Y)
@@ -162,16 +168,21 @@ def regression_translation(dictionary=en_2_es, embedding1=en_embedding, embeddin
     train_dict = {}
 
     for i in range(X_test.shape[0]):
+        if log and i%100 == 0:
+            print "testing set: {} of {}".format(i,X_test.shape[0])
         emb1 = X_test[i]
-        word1 = embedding1.words_closest_to_point(emb1, 1, return_dict=False)[0]
+        word1 = embedding1.words_closest_to_point(emb1, 1, return_distances=False)[0]
         pred_emb2 = Y_pred_test[i]
         trans = embedding2.words_closest_to_point(pred_emb2, k)
         trans = softmax(trans)
         test_dict[word1] = trans
 
     for i in range(X_train.shape[0]):
+        if log and i%100 == 0:
+            print "training set: {} of {}".format(i,X_train.shape[0])
+
         emb1 = X_train[i]
-        word1 = embedding1.words_closest_to_point(emb1, 1, return_dict=False)[0]
+        word1 = embedding1.words_closest_to_point(emb1, 1, return_distances=False)[0]
         pred_emb2 = Y_pred_train[i]
         trans = embedding2.words_closest_to_point(pred_emb2, k)
         trans = softmax(trans)

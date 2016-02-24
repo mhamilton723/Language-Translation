@@ -6,12 +6,13 @@ from operator import itemgetter
 from itertools import izip
 import re
 import pickle
+import heapq
 
 import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
-
 
 
 class Embedding(object):
@@ -65,27 +66,12 @@ class Embedding(object):
             return None
         return word
 
-    def nearest(self, word_index, k, method='cosine'):
-        """Sorts words according to their Euclidean distance.
-           To use cosine distance, embeddings has to be normalized so that their l2 norm is 1."""
-
-        e = self.embeddings[word_index]
-        if method =='l2':
-            distances = (((self.embeddings - e) ** 2).sum(axis=1) ** 0.5)
-        elif method == 'cosine':
-            distances = 1-np.dot(self.embeddings, e)/np.dot((self.embeddings**2).sum(axis=1)**.5, (e**2).sum()**.5)
-        sorted_distances = sorted(enumerate(distances), key=itemgetter(1))
-        return zip(*sorted_distances[:k])
-
-
-
     def word_to_embedding(self, words, log=False):
-
         if not isinstance(words, list):
             words = [words]
-            single=True
+            single = True
         else:
-            single=False
+            single = False
 
         embs = []
         for word in words:
@@ -103,31 +89,45 @@ class Embedding(object):
         else:
             return embs
 
-    def knn(self, word, k=5, method='cosine'):
+    def knn(self, word, k=5, method='cosine', return_distances=True):
         word = self.normalize(word)
         if not word:
             print("OOV word")
             return
         word_index = self.word_id[word]
-        indices, distances = self.nearest(word_index, k, method)
-        neighbors = [self.id_word[idx] for idx in indices]
-        return neighbors, distances
+        return self._nearest(word_index, k, method, return_distances)
 
-        #for i, (word, distance) in enumerate(izip(neighbors, distances)):
-        #    print i, '\t', word, '\t\t', distance
+    def _nearest(self, word_index, k, method='cosine', return_distances=True):
+        """Sorts words according to their Euclidean distance.
+           To use cosine distance, embeddings has to be normalized so that their l2 norm is 1."""
 
-    def words_closest_to_point(self, point, k=5, return_dict=True):
-        distances = (((self.embeddings - point) ** 2).sum(axis=1) ** 0.5)
-        sorted_distances = sorted(enumerate(distances), key=itemgetter(1))
+        e = self.embeddings[word_index]
+        return self.words_closest_to_point(e, k, method, return_distances)
 
-        indices, distances = zip(*sorted_distances[:k])
-        neighbors = [self.id_word[idx] for idx in indices]
-        if return_dict:
-            return {n: d for n, d in izip(neighbors, distances)}
+    def words_closest_to_point(self, point, k=5, method='cosine', return_distances=True,select_method='numpy'):
+        if method == 'l2':
+            distances = (((self.embeddings - point) ** 2).sum(axis=1) ** 0.5)
+        elif method == 'cosine':
+            distances = 1 - np.dot(self.embeddings, point) / np.dot((self.embeddings ** 2).sum(axis=1) ** .5,
+                                                                    (point ** 2).sum() ** .5)
+        else:
+            raise ValueError('input correct distance name')
+
+        if select_method == 'heappq':
+            k_smallest = heapq.nsmallest(k, enumerate(distances), key=itemgetter(1))
+        elif select_method == 'numpy':
+            k_smallest = np.argpartition(np.array(distances), k)[:k]
+            k_smallest = [(i, distances[i]) for i in k_smallest]
+        elif select_method == 'python':
+            k_smallest = sorted(enumerate(distances), key=itemgetter(1))[:k]
+
+        neighbors = [self.id_word[index] for index, dist in k_smallest]
+        distances = [dist for index, dist in k_smallest]
+
+        if return_distances:
+            return zip(neighbors, distances)
         else:
             return neighbors
-
-        # def embedding_dist(word1,word2,embedding,word_2_id)
 
     def plot_emb(self, model, show=True, save=None, alpha=.005):
 
@@ -136,7 +136,7 @@ class Embedding(object):
         else:
             comps = self.embeddings[:, 0:2]
 
-        plt.scatter(comps[:,0], comps[:,1] ,alpha=alpha )
+        plt.scatter(comps[:, 0], comps[:, 1], alpha=alpha)
 
         if save is not None:
             plt.savefig(save, dpi=100)
@@ -154,7 +154,7 @@ def sub_embedding(embedding, word_subset):
     sorted_id_word = sorted(new_embedding.id_word.iteritems())
     new_embedding.embeddings = embedding.embeddings[np.array([id for id, word in sorted_id_word])]
 
-    #Set the word id dictionary to start at 1
+    # Set the word id dictionary to start at 1
     for i, (id, word) in enumerate(sorted_id_word):
         new_embedding.word_id[word] = i
     new_embedding.id_word = {v: k for k, v in new_embedding.word_id.iteritems()}

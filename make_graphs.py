@@ -46,9 +46,8 @@ en_embedding = Embedding('data/polyglot-en.pkl')
 es_embedding = Embedding('data/polyglot-es.pkl')
 
 en_nn_graph = embedding_to_nngraph(en_embedding, k=5)
-es_nn_graph = embedding_to_nngraph(es_embedding, k=5)
-
 pickle.dump(en_nn_graph, open('data/en_nn_graph.pkl', 'w+'))
+es_nn_graph = embedding_to_nngraph(es_embedding, k=5)
 pickle.dump(es_nn_graph, open('data/es_nn_graph.pkl', 'w+'))
 
 for n, nbrs in en_nn_graph.adjacency_iter():
