@@ -65,44 +65,67 @@ class Embedding(object):
             return None
         return word
 
-    def l2_nearest(self, word_index, k):
+    def nearest(self, word_index, k, method='cosine'):
         """Sorts words according to their Euclidean distance.
            To use cosine distance, embeddings has to be normalized so that their l2 norm is 1."""
 
         e = self.embeddings[word_index]
-        distances = (((self.embeddings - e) ** 2).sum(axis=1) ** 0.5)
+        if method =='l2':
+            distances = (((self.embeddings - e) ** 2).sum(axis=1) ** 0.5)
+        elif method == 'cosine':
+            distances = 1-np.dot(self.embeddings, e)/np.dot((self.embeddings**2).sum(axis=1)**.5, (e**2).sum()**.5)
         sorted_distances = sorted(enumerate(distances), key=itemgetter(1))
         return zip(*sorted_distances[:k])
 
-    def word_to_embedding(self, word):
-        wordn = self.normalize(word)
 
-        if not wordn:
-            print("OOV word: " + repr(word))
-            return
-        word_index = self.word_id[wordn]
-        return self.embeddings[word_index, :]
 
-    def knn(self, word, k=5):
+    def word_to_embedding(self, words, log=False):
+
+        if not isinstance(words, list):
+            words = [words]
+            single=True
+        else:
+            single=False
+
+        embs = []
+        for word in words:
+            wordn = self.normalize(word)
+
+            if not wordn:
+                if log: print("OOV word: " + repr(word))
+                embs.append(None)
+            else:
+                word_index = self.word_id[wordn]
+                embs.append(self.embeddings[word_index, :])
+
+        if single:
+            return embs[0]
+        else:
+            return embs
+
+    def knn(self, word, k=5, method='cosine'):
         word = self.normalize(word)
         if not word:
             print("OOV word")
             return
         word_index = self.word_id[word]
-        indices, distances = self.l2_nearest(word_index, k)
+        indices, distances = self.nearest(word_index, k, method)
         neighbors = [self.id_word[idx] for idx in indices]
         return neighbors, distances
 
         #for i, (word, distance) in enumerate(izip(neighbors, distances)):
         #    print i, '\t', word, '\t\t', distance
 
-    def words_closest_to_point(self, point, k=5):
+    def words_closest_to_point(self, point, k=5, return_dict=True):
         distances = (((self.embeddings - point) ** 2).sum(axis=1) ** 0.5)
         sorted_distances = sorted(enumerate(distances), key=itemgetter(1))
 
         indices, distances = zip(*sorted_distances[:k])
         neighbors = [self.id_word[idx] for idx in indices]
-        return {n: d for n, d in izip(neighbors, distances)}
+        if return_dict:
+            return {n: d for n, d in izip(neighbors, distances)}
+        else:
+            return neighbors
 
         # def embedding_dist(word1,word2,embedding,word_2_id)
 

@@ -1,9 +1,0 @@
-#!/bin/bash
-#PBS -q gputest
-#PBS -N skipgram
-#PBS -l nodes=1:ppn=16,mem=10gb
-#PBS -l walltime=55:00:00
-
-cd $PBS_O_WORKDIR
-module load GPU/Cuda/6.0
-THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32  python ~/machine_learning/Language-Translation/skipgram_word_embeddings.py > ~/machine_learning/Language-Translation/logfile.txt
