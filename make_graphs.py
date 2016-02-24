@@ -36,8 +36,9 @@ def embedding_to_distgraph(embedding,log=True, cutoff=1):
             if dist < cutoff:
                 graph.add_edge(word1, word2)
 '''
+os.chdir(os.path.expanduser('~'))
+os.chdir('/Language-Translation')
 
-os.chdir('~/Language-Translation')
 en_2_es = pickle.load(open('data/en_2_es.pkl', 'r'))
 es_2_en = pickle.load(open('data/es_2_en.pkl', 'r'))
 enws = set(en_2_es.keys())
