@@ -92,7 +92,7 @@ def average_translation_dist(candidate, true_translation=en_2_es, embedding=es_e
 def flatten(dictionary):
     X = []
     Y = []
-    for en_word, (es_words, cat) in en_2_es.iteritems():
+    for en_word, (es_words, cat) in dictionary.iteritems():
         for es_word in es_words:
             X.append(en_word)
             Y.append(es_word)

@@ -55,6 +55,10 @@ class Embedding(object):
             return w
         return word
 
+    def in_vocab_words(self, words):
+        norm_words = [self.normalize(word) for word in words]
+        return [word for word in norm_words if word is not None]
+
     def normalize(self, word):
         """ Find the closest alternative in case the word is OOV."""
         if not word in self.word_id:
@@ -104,7 +108,7 @@ class Embedding(object):
         e = self.embeddings[word_index]
         return self.words_closest_to_point(e, k, method, return_distances)
 
-    def words_closest_to_point(self, point, k=5, method='cosine', return_distances=True,select_method='numpy'):
+    def words_closest_to_point(self, point, k=5, method='cosine', return_distances=True, select_method='numpy'):
         if method == 'l2':
             distances = (((self.embeddings - point) ** 2).sum(axis=1) ** 0.5)
         elif method == 'cosine':
