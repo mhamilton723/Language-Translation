@@ -71,11 +71,11 @@ class Embedding(object):
         return word
 
     def word_to_embedding(self, words, log=False):
-        if not isinstance(words, list):
+        if isinstance(words, list) or isinstance(words, set):
+            single = False
+        else:
             words = [words]
             single = True
-        else:
-            single = False
 
         embs = []
         for word in words:
@@ -120,10 +120,15 @@ class Embedding(object):
         if select_method == 'heappq':
             k_smallest = heapq.nsmallest(k, enumerate(distances), key=itemgetter(1))
         elif select_method == 'numpy':
-            k_smallest = np.argpartition(np.array(distances), k)[:k]
+            if k == 1:
+                k_smallest = [np.argmin(np.array(distances))]
+            else:
+                k_smallest = np.argpartition(np.array(distances), k)[:k]
             k_smallest = [(i, distances[i]) for i in k_smallest]
         elif select_method == 'python':
             k_smallest = sorted(enumerate(distances), key=itemgetter(1))[:k]
+        else:
+            raise ValueError("input a proper method")
 
         neighbors = [self.id_word[index] for index, dist in k_smallest]
         distances = [dist for index, dist in k_smallest]

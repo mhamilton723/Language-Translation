@@ -70,6 +70,8 @@ class EmbeddingTranslator(Translator):
     def _constrain(self):
         if self.constraint is not None:
             constraint_words = self.embedding2.in_vocab_words(self.constraint)
+            print 'constraint added: considering {} of {} words'.format(len(constraint_words),
+                                                                        len(self.embedding2.word_set))
             self.embedding2 = sub_embedding(self.embedding2, constraint_words)
 
     def translate(self, words, log=False):
@@ -160,16 +162,23 @@ def get_translation_parts(candidate,true_translation, mode="wholistic", log = Tr
 
     return good_translations, bad_translations
 
+def _standardize_translation(cand_t):
+    if isinstance(cand_t, tuple):
+        cand_t = cand_t[0]
+    if isinstance(cand_t, set):
+        # Assume an even distribution over set based translations
+        cand_t = [(word, 1. / len(cand_t)) for word in cand_t]
+    if isinstance(cand_t, dict):
+        cand_t = [(k, v) for k, v in cand_t.iteritems()]
+    return cand_t
+
+
 def translation_quality(candidate,true_translation, mode="wholistic", log = True):
     matches = totals = 0
     candidate = {k: v for k, v in candidate.iteritems() if v is not None}
     for cand_o, cand_t in candidate.iteritems():
 
-        if isinstance(cand_t, tuple):
-            cand_t = cand_t[0]
-        if isinstance(cand_t, set):
-            # Assume an even distribution over set based translations
-            cand_t = {word: 1. / len(cand_t) for word in cand_t}
+        cand_t = _standardize_translation(cand_t)
 
         if cand_o in true_translation:
             true_words = true_translation[cand_o]
@@ -184,7 +193,41 @@ def translation_quality(candidate,true_translation, mode="wholistic", log = True
     if log: print 'matches: {} totals: {}'.format(matches, totals)
     return matches / float(totals)
 
-def get_true_and_false_matched(candidate,true_translation, mode="wholistic", log = True):
+def translation_distance(candidate,true_translation, embedding, mode="average",d='l2',return_all=False, log = True):
+    candidate = {k: v for k, v in candidate.iteritems() if v is not None}
+    accum_distances = []
+
+    if d == 'l2':
+        distance = lambda v1, v2: np.sum((v1-v2)**2)**.5
+    else:
+        raise ValueError('Input correct name of distance')
+
+    for cand_o, cand_t in candidate.iteritems():
+
+        cand_t = _standardize_translation(cand_t)
+
+        if cand_o in true_translation:
+            true_words = true_translation[cand_o]
+            true_vects = embedding.word_to_embedding(true_words)
+            true_vects_in_vocab = len([true_vect for true_vect in true_vects if true_vect is not None]) >= 1
+
+            if true_vects_in_vocab:
+                accum_distance = 0
+                for trans_word, weight in cand_t:
+                    trans_vect = embedding.word_to_embedding(trans_word)
+                    distances = np.array([distance(true_vect, trans_vect)
+                                        for true_vect in true_vects if true_vect is not None])
+
+                    if mode == "average":
+                        accum_distance += weight*np.mean(distances)
+                accum_distances.append(accum_distance)
+
+    if return_all:
+        return accum_distances
+    else:
+        return np.mean(np.array(accum_distances))
+
+def get_true_and_false_matched(candidate, true_translation, mode="wholistic", log = True):
     matches = totals = 0
     candidate = {k: v for k, v in candidate.iteritems() if v is not None}
     for cand_o, cand_t in candidate.iteritems():
@@ -208,32 +251,23 @@ def get_true_and_false_matched(candidate,true_translation, mode="wholistic", log
     return matches / float(totals)
 
 
-'''
-def average_translation_dist(candidate, true_translation=en_2_es, embedding=es_embedding, mode="wholistic"):
-    matches = totals = 0
-    for cand_o, cand_t in candidate.iteritems():
 
-        if isinstance(cand_t, tuple):
-            cand_t = cand_t[0]
-        if isinstance(cand_t, set):
-            # Assume an even distribution over set based translations
-            cand_t = {word: 1. / len(cand_t) for word in cand_t}
-
-        if cand_o in true_translation.keys():
-            true_words = true_translation[cand_o][0]
-            for cand_t_word, weight in cand_t.iteritems():
-                for true_t_word in true_words:
-
-
-        totals += 1
-    return matches / float(totals)
-'''
-
-def dict_train_test_split(dictionary, test_size):
+def dict_train_test_split(dictionary,train_size, cap_train=None, cap_test=None):
     d_list = list(dictionary.iteritems())
+
+    if isinstance(train_size, int) and train_size > 1:
+        train_size /= float(len(d_list))
+
+    test_size = 1.-train_size
     indices_train, indices_test = iter(ShuffleSplit(len(d_list), n_iter=1, test_size=test_size)).next()
     d_train_list = [d_list[index_train] for index_train in indices_train]
     d_test_list = [d_list[index_test] for index_test in indices_test]
+
+    if cap_train is not None:
+        d_train_list = d_train_list[0:cap_train]
+    if cap_test is not None:
+        d_test_list = d_test_list[0:cap_test]
+
     return dict(d_train_list), dict(d_test_list)
 
 
