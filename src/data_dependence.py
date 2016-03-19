@@ -9,10 +9,10 @@ from sklearn.kernel_ridge import KernelRidge
 from sklearn.linear_model import Lasso, ElasticNet
 import pickle
 
-en_embedding = Embedding('data/polyglot-en.pkl')
-es_embedding = Embedding('data/polyglot-es.pkl')
-en_2_es = pickle.load(open('data/gt_en_2_es.pkl', 'r'))
-es_2_en = pickle.load(open('data/gt_es_2_en.pkl', 'r'))
+en_embedding = Embedding('../data/polyglot-en.pkl')
+es_embedding = Embedding('../data/polyglot-es.pkl')
+en_2_es = pickle.load(open('../data/gt_en_2_es.pkl', 'r'))
+es_2_en = pickle.load(open('../data/gt_es_2_en.pkl', 'r'))
 
 gt = True
 if not gt:
@@ -27,7 +27,7 @@ distances_train = np.zeros((len(train_sizes), n_iters))
 distances_test = np.zeros((len(train_sizes), n_iters))
 
 run_data_dependence = False
-data_dependence_fn = 'data/data_dependence_linear.pkl'
+data_dependence_fn = '../data/data_dependence_linear.pkl'
 data_dependence_plot_fn = 'plots/data_dependence_linear.png'
 
 if run_data_dependence:

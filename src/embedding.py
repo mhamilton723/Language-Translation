@@ -112,10 +112,13 @@ class Embedding(object):
         if method == 'l2':
             distances = (((self.embeddings - point) ** 2).sum(axis=1) ** 0.5)
         elif method == 'cosine':
-            distances = 1 - np.dot(self.embeddings, point) / np.dot((self.embeddings ** 2).sum(axis=1) ** .5,
-                                                                    (point ** 2).sum() ** .5)
+            if np.dot(point, point) < 10**-9:
+                point *= 1. / max(point)
+            distances = 1 - np.dot(self.embeddings, point) / (((self.embeddings ** 2).sum(axis=1) ** .5)*(np.dot(point,point)** .5))
         else:
             raise ValueError('input correct distance name')
+        if max(distances) > 2 or min(distances) < 0:
+            raise ValueError('Distance error')
 
         if select_method == 'heappq':
             k_smallest = heapq.nsmallest(k, enumerate(distances), key=itemgetter(1))
@@ -125,6 +128,7 @@ class Embedding(object):
             else:
                 k_smallest = np.argpartition(np.array(distances), k)[:k]
             k_smallest = [(i, distances[i]) for i in k_smallest]
+
         elif select_method == 'python':
             k_smallest = sorted(enumerate(distances), key=itemgetter(1))[:k]
         else:
@@ -137,6 +141,7 @@ class Embedding(object):
             return zip(neighbors, distances)
         else:
             return neighbors
+
 
     def plot_emb(self, model, show=True, save=None, alpha=.005):
 

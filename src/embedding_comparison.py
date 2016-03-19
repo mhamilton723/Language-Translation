@@ -17,13 +17,13 @@ from sklearn.base import clone
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-en_2_es = pickle.load(open('data/en_2_es.pkl', 'r'))
-es_2_en = pickle.load(open('data/es_2_en.pkl', 'r'))
+en_2_es = pickle.load(open('../data/en_2_es.pkl', 'r'))
+es_2_en = pickle.load(open('../data/es_2_en.pkl', 'r'))
 enws = set(en_2_es.keys())
 esws = set(es_2_en.keys())
 
-en_embedding = Embedding('data/polyglot-en.pkl')
-es_embedding = Embedding('data/polyglot-es.pkl')
+en_embedding = Embedding('../data/polyglot-en.pkl')
+es_embedding = Embedding('../data/polyglot-es.pkl')
 
 
 def softmax(scores):
@@ -265,7 +265,7 @@ if try_regression_translate:
     model = LinearRegression()
 
     regen_dicts = True
-    filename = 'data/translations.pkl'
+    filename = '../data/translations.pkl'
     if regen_dicts:
         train_trans, test_trans = regression_translation(model=model)
         pickle.dump((train_trans, test_trans), open(filename, 'w+'))

@@ -4,10 +4,11 @@ import matplotlib.pyplot as plt
 from embedding import *
 from translator import *
 from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.svm import SVR
+#from sklearn.ensemble import RandomForestRegressor
+#from sklearn.svm import SVR
 from sklearn.kernel_ridge import KernelRidge
-from sklearn.linear_model import Lasso, ElasticNet
+#from sklearn.linear_model import Lasso, ElasticNet
+from sklearn.grid_search import GridSearchCV
 import pickle
 
 def gen_random_translation(embedding1, embedding2, constraint=None):
@@ -35,12 +36,15 @@ if not gt:
 es_words = set.union(*en_2_es.values())
 
 redo_calc = True
-reg_trans_fn = 'data/gt_poly_trans.pkl'
+reg_trans_fn = 'data/gt_rbf_trans.pkl'
 if redo_calc:
+    param_grid = {'gamma': [2**i for i in range(-5, 5)], 'alpha': [.1, 1, 10]}
+    model = GridSearchCV(KernelRidge(kernel='rbf'), param_grid, cv=2)
+
     print "redoing calculation"
-    train_dict, test_dict = dict_train_test_split(en_2_es, train_size=20000, cap_test=5000)
+    train_dict, test_dict = dict_train_test_split(en_2_es, train_size=10000, cap_test=5000)
     reg_translator = RegressionEmbeddingTranslator(en_embedding, es_embedding,
-                                                   constraint=es_words, k=1, model=RandomForestRegressor())
+                                                   constraint=es_words, k=1, model=model)
     reg_translator.fit(train_dict)
     print "beginning translation"
     train_trans = reg_translator.translate(train_dict.keys(), log=True)

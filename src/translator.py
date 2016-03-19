@@ -17,6 +17,7 @@ class Translator(object):
                 scores = [score for word, score in scores]
                 denom = sum(math.exp(score) for score in scores)
                 return zip(words, [math.exp(score) / denom for score in scores])
+
             else:
                 denom = sum(math.exp(score) for score in scores)
                 return [math.exp(score) / denom for score in scores]
@@ -128,16 +129,20 @@ class RegressionEmbeddingTranslator(EmbeddingTranslator):
             output[words[ind]] = trans
         return output
 
-    def fit(self, dictionary):
+    def fit(self, dictionary, log=False):
         X, Y = self._flatten(dictionary)
         embs1 = self.embedding1.word_to_embedding(X)
         embs2 = self.embedding2.word_to_embedding(Y)
         embs1, embs2 = self._remove_nones([embs1, embs2])
         X_arr = np.array(embs1)
         Y_arr = np.array(embs2)
+        if log:
+            print('Fitting Model')
         self.model.fit(X_arr, Y_arr)
 #        self.model.fit(X_arr.astype(np.double), Y_arr.astype(np.double))
         self.is_fit = True
+        if log:
+            print('Model Fit')
 
 def get_translation_parts(candidate,true_translation, mode="wholistic", log = True):
     matches = totals = 0
@@ -193,12 +198,14 @@ def translation_quality(candidate,true_translation, mode="wholistic", log = True
     if log: print 'matches: {} totals: {}'.format(matches, totals)
     return matches / float(totals)
 
-def translation_distance(candidate,true_translation, embedding, mode="average",d='l2',return_all=False, log = True):
+def translation_distance(candidate,true_translation, embedding, mode="average",d='cosine',return_all=False, log = True):
     candidate = {k: v for k, v in candidate.iteritems() if v is not None}
     accum_distances = []
 
     if d == 'l2':
         distance = lambda v1, v2: np.sum((v1-v2)**2)**.5
+    elif d == 'cosine':
+        distance = lambda v1, v2: 1-np.dot(v1, v2)/(np.linalg.norm(v1)*np.linalg.norm(v2))
     else:
         raise ValueError('Input correct name of distance')
 
